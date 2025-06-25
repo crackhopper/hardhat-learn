@@ -1,0 +1,4 @@
+{
+    "editor.tabSize": 4, // 设置制表符为4个空格
+    "editor.insertSpaces": true // 确保按Tab键时插入的是空格而不是制表符
+}
