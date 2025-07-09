@@ -1,0 +1,30 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Hardhat Script Debugger",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            // 替换成你的 Hardhat 脚本的相对路径
+            // 例如: "${workspaceFolder}/scripts/deploy.js"
+            "program": "${file}", 
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "outFiles": [],
+            "sourceMaps": true,
+            "runtimeExecutable": "npx",
+            "runtimeArgs": [
+                "hardhat",
+                "run",
+                "--network",
+                // 替换成你想要调试的网络，例如 "localhost", "sepolia", "hardhat"
+                "localhost" 
+            ]
+        }
+    ]
+}

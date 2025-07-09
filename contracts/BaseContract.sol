@@ -2,7 +2,9 @@
 pragma solidity ^0.8.28;
 
 contract BaseContract {
+    address owner;
     constructor() {
+        owner = msg.sender;
     }
     // 查看合约余额
     function getBalance() public view returns(uint) {

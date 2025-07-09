@@ -4,6 +4,9 @@ import "./BaseContract.sol";
 // 记录转账人和转账金额
 contract Contract4 is BaseContract {
     mapping(address => uint) public transferAmount;
+    constructor() payable BaseContract(){
+        
+    }    
     receive() external payable{
         // 记录转账金额
         transferAmount[msg.sender] += msg.value;

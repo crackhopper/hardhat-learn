@@ -1,5 +1,6 @@
 import type { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox-viem";
+import "@typechain/hardhat";
 import "hardhat-ethernal";
 import * as dotenv from 'dotenv'
 dotenv.config() // 导入 dotenv
@@ -14,6 +15,13 @@ const config: HardhatUserConfig = {
       url: "http://127.0.0.1:8545",
       chainId: 31337, // Hardhat Network 的 chain ID
     }
+  },
+  typechain: {
+    outDir: "typechain-types", // 生成的类型文件将放在这个目录，这是默认值，但明确写出来更好
+    target: "ethers-v6", // **这一行是关键！** 使用 `ethers-v6` 目标
+    // 或者，如果你使用的是 ethers.js v5: target: "ethers-v5",
+    // 如果你明确想为 Viem 生成，你需要安装 @typechain/web3 或者其他专门的 Viem 目标库，通常不需要，因为 Viem 更多是直接与 ABI 交互，不需要 TypeChain 额外生成类型。
+    alwaysGenerateOverloads: true, // 推荐：为函数重载生成单独的类型
   },
   ethernal: {
     disabled: false,
