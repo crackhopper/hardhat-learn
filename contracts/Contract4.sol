@@ -10,10 +10,10 @@ contract Contract4 is BaseContract {
     receive() external payable{
         // 记录转账金额
         transferAmount[msg.sender] += msg.value;
-        emit ReceivedETH(msg.sender, msg.value, "receive");
+        emit ReceivedETH("receive");
     }
     fallback() external {
-        emit ReceivedETH(msg.sender, 0, "fallback not payable");
+        emit ReceivedETH("fallback not payable");
     }
     // 获取转账金额
     function getUserAmount(address user) public view returns(uint) {

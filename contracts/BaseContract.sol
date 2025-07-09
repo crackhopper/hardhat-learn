@@ -10,7 +10,7 @@ contract BaseContract {
     function getBalance() public view returns(uint) {
         return address(this).balance;
     }
-    event ReceivedETH(address indexed from, uint amount, string method);
+    event ReceivedETH(string method);
 
 
     function test() public pure returns (string memory) {

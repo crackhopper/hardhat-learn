@@ -112,9 +112,7 @@ async function logTransaction(txHash: `0x${string}`) {
 async function getEvents() {
   // 监听events
   // 在BaseContract中定义为： event ReceivedETH(address indexed from, uint amount, string method);
-  const events = await contract1Contract.getEvents.ReceivedETH({
-    from: Exp1Address,
-  });
+  const events = await contract1Contract.getEvents.ReceivedETH();
   console.log("ReceivedETH events:", events);
 
   const events2 = await exp1Contract.getEvents.logResult();
@@ -123,8 +121,9 @@ async function getEvents() {
 
 // 操作Exp1合约，调用 payFinneyWithSend, payFinneyWithTransfer, payFinneyWithCall 实现：
 // - 向Contract1转账：send/transfer/call 均可以成功。查验交易历史数据、查看账户/合约余额。理解交易数据。
-async function runTest(){
+async function runTest_Send(){
     await showBalance();
+    // console.log('gas estimated for payFinneyWithSend:', await exp1Contract.estimateGas.payFinneyWithSend([Contract1Address]));
     // 调用 payFinneyWithSend
     const txHash1 = await exp1Contract.write.payFinneyWithSend([Contract1Address]);
     console.log("payFinneyWithSend txHash:", txHash1);
@@ -133,4 +132,28 @@ async function runTest(){
     await getEvents();
 }
 
-runTest();
+async function runTest_Transfer(){
+    await showBalance();
+    // 调用 payFinneyWithTransfer
+    const txHash2 = await exp1Contract.write.payFinneyWithTransfer([Contract1Address]);
+    console.log("payFinneyWithTransfer txHash:", txHash2);
+    await logTransaction(txHash2);
+    await showBalance();
+    await getEvents();
+}
+
+async function runTest_Call(){
+    await showBalance();
+    // 调用 payFinneyWithCall
+    const txHash3 = await exp1Contract.write.payFinneyWithCall([Contract1Address]);
+    console.log("payFinneyWithCall txHash:", txHash3);
+    await logTransaction(txHash3);
+    await showBalance();
+    await getEvents();
+}
+
+async function main(){
+    await runTest_Send();
+}
+
+main();

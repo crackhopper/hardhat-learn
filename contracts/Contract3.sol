@@ -7,6 +7,6 @@ contract Contract3 is BaseContract {
         
     }    
     fallback() external {
-        emit ReceivedETH(msg.sender, 0, "fallback not payable");
+        emit ReceivedETH("fallback not payable");
     }
 }

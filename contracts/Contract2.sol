@@ -7,7 +7,7 @@ contract Contract2 is BaseContract {
         
     }    
     function depositETH() public payable {
-        emit ReceivedETH(msg.sender, msg.value, "depositETH");
+        emit ReceivedETH("depositETH");
     }
 
     function withdrawETH() public {
@@ -16,10 +16,10 @@ contract Contract2 is BaseContract {
     }
 
     receive() external payable {
-        emit ReceivedETH(msg.sender, msg.value, "receive");
+        emit ReceivedETH("receive");
     }
 
     fallback() external payable {
-        emit ReceivedETH(msg.sender, msg.value, "fallback");
+        emit ReceivedETH("fallback");
     }
 }
