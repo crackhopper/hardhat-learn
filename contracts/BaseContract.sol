@@ -11,6 +11,7 @@ contract BaseContract {
         return address(this).balance;
     }
     event ReceivedETH(string method);
+    event ReceivedETH2(address indexed from, uint amount, string method);
 
 
     function test() public pure returns (string memory) {

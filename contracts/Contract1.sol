@@ -7,9 +7,11 @@ contract Contract1 is BaseContract {
         
     }
     receive() external payable {
-        emit ReceivedETH("received");
+        // emit ReceivedETH("received");
+        emit ReceivedETH2(msg.sender, msg.value, "received");
     }
     fallback() external payable {
-        emit ReceivedETH("fallback");
+        // emit ReceivedETH("fallback");
+        emit ReceivedETH2(msg.sender, msg.value, "fallback");
     }
 }

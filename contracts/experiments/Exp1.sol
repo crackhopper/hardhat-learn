@@ -2,6 +2,10 @@
 pragma solidity ^0.8.28;
 
 contract Exp1 {
+    // 1 ETH = 1000 FINNEY
+    // 1 FINNEY = 1000,000 GWei
+    // 1 GWei = 1000,000,000 Wei
+
     uint256 public constant TEN_FINNEY = 10_000_000_000_000_000;
     address payable public eth_fallback_receiver;
     // 创建该合约的时候，存入1ETH = 1000 finney
