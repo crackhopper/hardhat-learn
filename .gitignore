@@ -39,3 +39,4 @@ artifacts/
 .states/
 output.json
 trace.jsonl
+gas-report.txt
