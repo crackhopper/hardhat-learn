@@ -8,42 +8,53 @@ import {
   http,
   parseEther,
   formatEther,
+  ContractFunctionExecutionError,
+  PublicClient,
 } from "viem";
 import { hardhat } from "viem/chains";
+import hre from "hardhat"; // 引入 Hardhat Runtime Environment
 import { privateKeyToAccount } from "viem/accounts";
 
+// Hardhat 自动生成的 artifacts
 import Contract1Json from "../../artifacts/contracts/Contract1.sol/Contract1.json";
-import { Contract1$Type } from "../../artifacts/contracts/Contract1.sol/Contract1";
-const Contract1Abi = Contract1Json.abi as Contract1$Type["abi"];
+// import { Contract1$Type } from "../../artifacts/contracts/Contract1.sol/Contract1"; // Viem 类型，此处不再需要
+const Contract1Abi = Contract1Json.abi; // 直接使用 ABI
 
 import Contract2Json from "../../artifacts/contracts/Contract2.sol/Contract2.json";
-import { Contract2$Type } from "../../artifacts/contracts/Contract2.sol/Contract2";
-const Contract2Abi = Contract2Json.abi as Contract2$Type["abi"];
+// import { Contract2$Type } from "../../artifacts/contracts/Contract2.sol/Contract2"; // Viem 类型，此处不再需要
+const Contract2Abi = Contract2Json.abi; // 直接使用 ABI
 
 import Exp1Json from "../../artifacts/contracts/experiments/Exp1.sol/Exp1.json";
-import { Exp1$Type } from "../../artifacts/contracts/experiments/Exp1.sol/Exp1";
-const Exp1Abi = Exp1Json.abi as Exp1$Type["abi"];
+// import { Exp1$Type } from "../../artifacts/contracts/experiments/Exp1.sol/Exp1"; // Viem 类型，此处不再需要
+const Exp1Abi = Exp1Json.abi; // 直接使用 ABI
 
-import { Contract1Address, Contract2Address, Exp1Address, wallet0_pk } from "../consts";
+import {
+  Contract1Address,
+  Contract2Address,
+  Exp1Address,
+  wallet0_pk,
+} from "../consts";
 
-// 使用0号钱包的私钥
+// --- Hardhat Ethers.js 相关变量 ---
+let exp1ContractEthers: any; // 使用 any 简化类型，实际项目中应使用 ethers.Contract 类型
+let contract1ContractEthers: any;
+let contract2ContractEthers: any;
+let deployerEthers: any; // Hardhat Ethers.js 的 Signer
+
+// Viem 客户端保持不变，用于余额查询等公共操作
 const account0 = privateKeyToAccount(wallet0_pk);
-
-// 创建 Viem 公共客户端
 const publicClient = createPublicClient({
   chain: hardhat,
   transport: http(),
 });
-
-// 创建 Viem 钱包客户端 (用于发送交易)
 const walletClient = createWalletClient({
-  account: account0, // 使用0号账户
+  account: account0,
   chain: hardhat,
   transport: http(),
 });
 
-// 创建 Exp1 的 Viem 合约实例
-const exp1Contract = getContract({
+// Viem 合约实例保持不变，用于余额查询等公共操作
+const exp1ContractViem = getContract({
   address: Exp1Address,
   abi: Exp1Abi,
   client: {
@@ -52,8 +63,7 @@ const exp1Contract = getContract({
   },
 });
 
-// 获取 Contract1 的 Viem 合约实例 (如果需要读取它的状态或调用函数)
-const contract1Contract = getContract({
+const contract1ContractViem = getContract({
   address: Contract1Address,
   abi: Contract1Abi,
   client: {
@@ -62,8 +72,7 @@ const contract1Contract = getContract({
   },
 });
 
-// 创建 Contract2 的 Viem 合约实例
-const contract2Contract = getContract({
+const contract2ContractViem = getContract({
   address: Contract2Address,
   abi: Contract2Abi,
   client: {
@@ -72,22 +81,41 @@ const contract2Contract = getContract({
   },
 });
 
+async function anotherRun() {
+  hre.tracer.enabled = true;
+  const [owner, otherAccount] = await hre.viem.getWalletClients();
+  const publicClient = await hre.viem.getPublicClient();
+
+  await showBalance(publicClient);
+  const contract = await hre.viem.getContractAt("Exp1", Exp1Address);
+  const txHash = await contract.write.payFinneyWithCall([
+    Contract1Address,
+  ]);
+  await logTransaction(publicClient, txHash);
+  await showBalance(publicClient);
+
+  const traces = hre.tracer.allTraces();
+  console.log(traces);
+
+  hre.tracer.enabled = false;
+
+}
 
 // 关于viem的contract实例的用法：
 // https://viem.sh/docs/contract/getContract#contract-instances
 
-async function showBalance() {
-  const balanceExp1 = await publicClient.getBalance({
+async function showBalance(pubClient: PublicClient) {
+  const balanceExp1 = await pubClient.getBalance({
     address: Exp1Address,
   });
-  const balanceContract1 = await publicClient.getBalance({
+  const balanceContract1 = await pubClient.getBalance({
     address: Contract1Address,
   });
-  const balanceContract2 = await publicClient.getBalance({
+  const balanceContract2 = await pubClient.getBalance({
     address: Contract2Address,
   });
 
-  const balanceAccount0 = await publicClient.getBalance({
+  const balanceAccount0 = await pubClient.getBalance({
     address: account0.address,
   });
   console.log(`Exp1 合约余额: ${formatEther(balanceExp1, "gwei")} gwei`);
@@ -104,12 +132,12 @@ async function showBalance() {
 const replacer = (key: any, value: any) =>
   typeof value === "bigint" ? value.toString() : value;
 
-async function logTransaction(txHash: `0x${string}`) {
-  const tx = await publicClient.getTransaction({
+async function logTransaction(pubClient: PublicClient, txHash: `0x${string}`) {
+  const tx = await pubClient.getTransaction({
     hash: txHash,
   });
   console.log(`交易信息: ${JSON.stringify(tx, replacer)}`);
-  const txReceipt = await publicClient.getTransactionReceipt({
+  const txReceipt = await pubClient.getTransactionReceipt({
     hash: txHash,
   });
 
@@ -132,71 +160,88 @@ async function logTransaction(txHash: `0x${string}`) {
 async function getEvents() {
   // 监听events
   // 在BaseContract中定义为： event ReceivedETH(address indexed from, uint amount, string method);
-  const events = await contract1Contract.getEvents.ReceivedETH();
+  const events = await contract1ContractViem.getEvents.ReceivedETH(); // 使用 Viem 客户端获取事件
   console.log("ReceivedETH events:", events);
 
-  const events2 = await exp1Contract.getEvents.logResult();
+  const events2 = await exp1ContractViem.getEvents.logResult(); // 使用 Viem 客户端获取事件
   console.log("logResult events:", events2);
 }
 
 // 操作Exp1合约，调用 payFinneyWithSend, payFinneyWithTransfer, payFinneyWithCall 实现：
 // - 向Contract1转账：send/transfer/call 均可以成功。查验交易历史数据、查看账户/合约余额。理解交易数据。
 async function runTest_Send() {
-  await showBalance();
-  // console.log('gas estimated for payFinneyWithSend:', await exp1Contract.estimateGas.payFinneyWithSend([Contract1Address]));
-  // 调用 payFinneyWithSend
-  const txHash1 = await exp1Contract.write.payFinneyWithSend([
-    Contract1Address,
-  ]);
-  console.log("payFinneyWithSend txHash:", txHash1);
-  await logTransaction(txHash1);
-  await showBalance();
+  await showBalance(publicClient);
+  // 使用 ethers.js 实例调用方法
+  const tx = await exp1ContractEthers.payFinneyWithSend(Contract1Address);
+  const receipt = await tx.wait(); // 等待交易确认
+  console.log("payFinneyWithSend txHash:", receipt.hash);
+  await logTransaction(publicClient, receipt.hash);
+  await showBalance(publicClient);
   await getEvents();
 }
 
 async function runTest_Send2() {
-  await showBalance();
-  // console.log('gas estimated for payFinneyWithSend:', await exp1Contract.estimateGas.payFinneyWithSend([Contract1Address]));
-  // 调用 payFinneyWithSend
-  const txHash1 = await exp1Contract.write.payFinneyWithSend([
-    Contract2Address,
-  ]);
-  console.log("payFinneyWithSend txHash:", txHash1);
-  await logTransaction(txHash1);
-  await showBalance();
+  await showBalance(publicClient);
+
+  // 使用 ethers.js 实例调用方法
+  const tx = await exp1ContractEthers.payFinneyWithSend(Contract2Address);
+  const receipt = await tx.wait(); // 等待交易确认
+  console.log("payFinneyWithSend txHash:", receipt.hash);
+  await logTransaction(publicClient, receipt.hash);
+  await showBalance(publicClient);
   await getEvents();
 }
 
-async function runTst_Transfer() {
-  await showBalance();
+async function runTest_Transfer() {
+  await showBalance(publicClient);
   // 调用 payFinneyWithTransfer
   try {
-    const txHash2 = await exp1Contract.write.payFinneyWithTransfer([
+    // Hardhat Tracer 应该在 main 函数中全局启用/禁用
+    // hre.tracer.enabled = true; // 移除这里的启用/禁用，由 main 函数统一控制
+    const tx = await exp1ContractEthers.payFinneyWithTransfer(
       Contract1Address,
-    ]);
-    console.log("payFinneyWithTransfer txHash:", txHash2);
-    await logTransaction(txHash2);
-  } catch (error) {
-    console.log("transfer error");
+      { gasLimit: 100000 } // ethers.js 中是 gasLimit，不是 gas
+    );
+    const receipt = await tx.wait(); // 等待交易确认
+    // hre.tracer.enabled = false; // 移除这里的启用/禁用
+    console.log("payFinneyWithTransfer txHash:", receipt.hash);
+    await logTransaction(publicClient, receipt.hash);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      // 捕获 ethers.js 错误
+      console.error("交易失败:", error.message);
+      // ethers.js 的错误对象结构与 Viem 不同，需要相应调整错误处理逻辑
+      // 例如，ethers.js 的错误可能包含 `transactionHash` 或 `receipt` 属性
+      // if ((error as any).transactionHash) {
+      //   console.log("失败交易哈希:", (error as any).transactionHash);
+      // }
+    } else {
+      console.error("发生未知错误:", error);
+    }
   }
-  await showBalance();
+  await showBalance(publicClient);
   await getEvents();
 }
 
 async function runTest_Call() {
-  await showBalance();
+  await showBalance(publicClient);
   // 调用 payFinneyWithCall
-  const txHash3 = await exp1Contract.write.payFinneyWithCall([
-    Contract1Address,
-  ]);
-  console.log("payFinneyWithCall txHash:", txHash3);
-  await logTransaction(txHash3);
-  await showBalance();
+  const tx = await exp1ContractEthers.payFinneyWithCall(Contract1Address);
+  const receipt = await tx.wait(); // 等待交易确认
+  console.log("payFinneyWithCall txHash:", receipt.hash);
+  await logTransaction(publicClient, receipt.hash);
+  await showBalance(publicClient);
   await getEvents();
 }
 
 async function main() {
-  await runTest_Send2();
+  await anotherRun();
 }
 
-main();
+// Hardhat 推荐的脚本启动方式
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
